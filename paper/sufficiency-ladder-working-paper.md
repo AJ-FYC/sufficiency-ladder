@@ -2,7 +2,7 @@
 
 Oct 27, 2026 · RI
 
-Working paper, October 2026. The idea is the author's; the literature review, model, simulation and drafting were done with Claude (Anthropic). The model's code, an interactive simulator and this paper are published at [github.com/AJ-FYC/sufficiency-ladder](https://github.com/AJ-FYC/sufficiency-ladder); the simulator runs at [aj-fyc.github.io/sufficiency-ladder](https://aj-fyc.github.io/sufficiency-ladder/).
+Working paper, October 2026. The idea is the author's; the literature review, model, simulation and drafting were done with Claude (Anthropic). The model's code, an interactive simulator and this paper are published at [github.com/AJ-FYC/sufficiency-ladder](https://github.com/AJ-FYC/sufficiency-ladder); the simulator runs at [aj-fyc.github.io/sufficiency-ladder](https://aj-fyc.github.io/sufficiency-ladder/). A short essay on the idea for general readers is on [Substack](https://rinsite.substack.com/p/keynes-promised-us-time-ai-is-our).
 
 ## Abstract
 
