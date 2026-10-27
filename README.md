@@ -5,6 +5,7 @@ A proposal for sharing AI's productivity gains with the people doing the work, w
 - **Essay:** [Keynes Promised Us Time. AI Is Our Second Chance.](https://rinsite.substack.com/p/keynes-promised-us-time-ai-is-our) (Substack; also in [essay/](essay/keynes-promised-us-time.md))
 - **Working paper:** [paper/sufficiency-ladder-working-paper.pdf](paper/sufficiency-ladder-working-paper.pdf), version 5.1, 27 October 2026
 - **Simulator:** [aj-fyc.github.io/sufficiency-ladder](https://aj-fyc.github.io/sufficiency-ladder/). Change the assumptions and rerun the model in your browser.
+- **Video:** [the idea in 60 seconds](https://www.youtube.com/shorts/szgsdkdHAZ0) (YouTube Short; the file is in [media/](media/))
 
 ![Who gets AI's gains? Yearly income growth over 30 years in a simulation, savings included](figures/cover.png)
 
@@ -45,7 +46,7 @@ Requires Node 16 or later and Python 3.9 or later. No other dependencies. A defa
 - `paper/`: the working paper as PDF and as markdown.
 - `essay/`: the essay as published on Substack.
 - `figures/`: the paper's figures and the essay's cover.
-- `media/`: the 60-second video Short and its captions.
+- `media/`: the 60-second video Short and its captions, [published on YouTube](https://www.youtube.com/shorts/szgsdkdHAZ0).
 
 ## For reviewers
 
