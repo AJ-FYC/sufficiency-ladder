@@ -1,0 +1,1030 @@
+<title>Sufficiency Ladder Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: one column of control panel, KPI strip, then a two-up grid of charts that stacks on phones. */
+:root {
+  --bg: #f4f5f2; --surface: #fcfcfb; --ink: #121417; --ink2: #52514e; --muted: #77756f;
+  --grid: #e1e0d9; --base: #c3c2b7; --ring: rgba(11,11,11,0.10); --wash: rgba(42,120,214,0.08);
+  --accent: #2a78d6; --good: #006300;
+  --sq: #eb6834; --ladder: #2a78d6; --dividend: #1baf7a; --gross: #eda100; --admit: #6250d6;
+  --o1: #ef9a70; --o2: #e9773f; --o3: #c4501c; --o4: #85320f;
+  --b1: #86b6ef; --b2: #3987e5; --b3: #1c5cab; --b4: #0d366b;
+  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0e0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #8f8d86;
+    --grid: #2c2c2a; --base: #383835; --ring: rgba(255,255,255,0.10); --wash: rgba(57,135,229,0.12);
+    --accent: #5598e7; --good: #0ca30c;
+    --sq: #d95926; --ladder: #3987e5; --dividend: #199e70; --gross: #c98500; --admit: #9085e9;
+    --o1: #8a3a17; --o2: #b6491c; --o3: #e06c3a; --o4: #f2a07a;
+    --b1: #184f95; --b2: #2a78d6; --b3: #5598e7; --b4: #9ec5f4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d0e0d; --surface: #1a1a19; --ink: #f0efec; --ink2: #c3c2b7; --muted: #8f8d86;
+  --grid: #2c2c2a; --base: #383835; --ring: rgba(255,255,255,0.10); --wash: rgba(57,135,229,0.12);
+  --accent: #5598e7; --good: #0ca30c;
+  --sq: #d95926; --ladder: #3987e5; --dividend: #199e70; --gross: #c98500; --admit: #9085e9;
+  --o1: #8a3a17; --o2: #b6491c; --o3: #e06c3a; --o4: #f2a07a;
+  --b1: #184f95; --b2: #2a78d6; --b3: #5598e7; --b4: #9ec5f4;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; display: grid; gap: 22px; }
+header { display: grid; gap: 8px; }
+.eyebrow { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(28px, 4.2vw, 42px); line-height: 1.08; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+.lede { max-width: 72ch; color: var(--ink2); margin: 0; font-size: 16px; }
+h2 { font-family: var(--serif); font-weight: 600; font-size: 19px; margin: 0; text-wrap: balance; }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px; min-width: 0; }
+.controls { display: grid; gap: 16px; }
+.controls-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: baseline; justify-content: space-between; }
+.controls-head p { margin: 0; color: var(--ink2); font-size: 14px; max-width: 70ch; }
+.grid-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px 24px; }
+.ctl { display: grid; gap: 4px; min-width: 0; }
+.ctl-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.ctl label { font-weight: 500; font-size: 14px; }
+.ctl output { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14px; color: var(--ink); }
+.ctl .hint { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+.toggle { display: flex; gap: 10px; align-items: flex-start; }
+.toggle input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+button { font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); background: var(--surface); border: 1px solid var(--base); border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+button:hover { background: var(--wash); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.kpi .label { font-size: 13px; color: var(--ink2); line-height: 1.35; }
+.kpi .pair { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: baseline; }
+.kpi .v { font-size: 22px; font-weight: 600; line-height: 1.2; }
+.kpi .k { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.kpi .note { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.key { display: inline-block; width: 14px; height: 3px; border-radius: 2px; flex: none; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.charts .wide { grid-column: 1 / -1; }
+@media (max-width: 820px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.chart-card { display: grid; gap: 10px; align-content: start; }
+.chart-card .sub { margin: 0; color: var(--ink2); font-size: 13.5px; max-width: 75ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.chart { position: relative; width: 100%; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--sans); }
+.pair-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 560px) { .pair-charts { grid-template-columns: minmax(0, 1fr); } }
+.panel-title { font-size: 13.5px; font-weight: 600; margin: 0 0 2px; display: flex; gap: 8px; align-items: center; }
+.panel-note { font-size: 12.5px; color: var(--ink2); margin: 0 0 4px; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); min-width: 150px; z-index: 5; }
+.tip .t { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.tip .row { display: grid; grid-template-columns: 14px auto 1fr; gap: 6px; align-items: center; }
+.tip .row b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.tip .row span:last-child { color: var(--ink2); }
+details { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 14px 18px; }
+summary { cursor: pointer; font-weight: 500; }
+.table-wrap { overflow-x: auto; margin-top: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; white-space: normal; }
+thead th { color: var(--ink2); font-weight: 500; }
+.notes { color: var(--ink2); font-size: 13.5px; display: grid; gap: 8px; max-width: 80ch; }
+.notes p { margin: 0; }
+.busy .chart { opacity: 0.55; transition: opacity 120ms; }
+@media (prefers-reduced-motion: reduce) { .busy .chart { transition: none; } }
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="eyebrow">Agent-based model · 2,000 people and 20 owners · 30 years</div>
+    <h1>The Sufficiency Ladder</h1>
+    <p class="lede">What happens if most of the profit added by AI goes to the people doing the work, and people who reach "enough" can hand part of their hours to the next person in line? Move the dials and compare four worlds: today's rules, the ladder, a flat dividend paid to everyone, and the ladder with its split taken before costs instead of after.</p>
+  </header>
+
+  <section class="card controls" aria-labelledby="ctl-h">
+    <div class="controls-head">
+      <h2 id="ctl-h">Assumptions</h2>
+      <button id="reset" type="button">Reset to defaults</button>
+    </div>
+    <div class="grid-controls">
+      <div class="ctl">
+        <div class="ctl-top"><label for="c">Company's share of added profit</label><output id="c-out" for="c"></output></div>
+        <input type="range" id="c" min="0.05" max="1" step="0.05" value="0.10">
+        <div class="hint">c. The rest goes to workers. At 100% the ladder pays nothing extra.</div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-top"><label for="g">Extra productivity growth from AI</label><output id="g-out" for="g"></output></div>
+        <input type="range" id="g" min="0" max="0.03" step="0.0025" value="0.015">
+        <div class="hint">Per year for all 30 years, if every profitable AI project is built. 1.5% extends Goldman Sachs's estimate for the decade after adoption; Acemoglu's implies about 0.05%.</div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-top"><label for="lam">AI gains that show up as fewer hours needed</label><output id="lam-out" for="lam"></output></div>
+        <input type="range" id="lam" min="0" max="1" step="0.05" value="0.3">
+        <div class="hint">λ. 0% means AI only adds output; 100% means it only saves labor.</div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-top"><label for="eta">How strongly people trade money for time</label><output id="eta-out" for="eta"></output></div>
+        <input type="range" id="eta" min="0" max="0.4" step="0.05" value="0.2">
+        <div class="hint">η. Hours fall as pay per hour rises. 0.2 is roughly what the long-run decline in hours implies (Boppart and Krusell).</div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-top"><label for="nu">"Enough" rises with typical income</label><output id="nu-out" for="nu"></output></div>
+        <input type="range" id="nu" min="0" max="1" step="0.25" value="0.5">
+        <div class="hint">ν. 0 keeps "enough" fixed at 25 years of today's living costs; 1 moves it one-for-one with median income.</div>
+      </div>
+      <div class="ctl">
+        <div class="ctl-top"><label for="psi">"Enough" rises with inequality</label><output id="psi-out" for="psi"></output></div>
+        <input type="range" id="psi" min="0" max="1" step="0.25" value="0">
+        <div class="hint">ψ. Status pressure: the further the top tenth of earners pulls away from the middle, the more people feel they need.</div>
+      </div>
+      <div class="ctl">
+        <div class="toggle">
+          <input type="checkbox" id="admit">
+          <div><label for="admit">Admission rule</label>
+            <div class="hint">When people are waiting for work, workers share hours (down to three days) to take them in.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Results in year 30" class="kpis" id="kpis"></section>
+
+  <section class="charts">
+    <div class="card chart-card wide">
+      <h2>Who gains</h2>
+      <p class="sub">Yearly growth of average total income by earning-power class, years 0 to 30, counting savings locked in capital accounts.</p>
+      <div class="legend" data-legend="regimes"></div>
+      <div class="chart" id="ch-growth"></div>
+    </div>
+    <div class="card chart-card wide">
+      <h2>The hierarchy holds; the gaps change</h2>
+      <p class="sub">Average income per person by class, thousands of dollars, log scale.</p>
+      <div class="legend" id="legend-classes"></div>
+      <div class="pair-charts">
+        <div><p class="panel-title"><span class="key" style="background:var(--sq)"></span>Status quo</p><p class="panel-note" id="note-sq"></p><div class="chart" id="ch-paths-sq"></div></div>
+        <div><p class="panel-title"><span class="key" style="background:var(--ladder)"></span>Sufficiency Ladder</p><p class="panel-note" id="note-ladder"></p><div class="chart" id="ch-paths-ladder"></div></div>
+      </div>
+    </div>
+    <div class="card chart-card">
+      <h2>People who want work but have none</h2>
+      <p class="sub">Unemployment rate among people looking for work.</p>
+      <div class="legend" data-legend="regimes"></div>
+      <div class="chart" id="ch-unemp"></div>
+    </div>
+    <div class="card chart-card">
+      <h2>Days worked per week</h2>
+      <p class="sub">Average across people with a job. Five days is full time.</p>
+      <div class="legend" data-legend="regimes"></div>
+      <div class="chart" id="ch-days"></div>
+    </div>
+    <div class="card chart-card wide">
+      <h2>Where people stand on the ladder</h2>
+      <p class="sub">Share of people by progress toward "enough". Tiers I–II are below half of it, III–IV above half.</p>
+      <div class="legend" id="legend-tiers"></div>
+      <div class="pair-charts">
+        <div><p class="panel-title"><span class="key" style="background:var(--sq)"></span>Status quo</p><div class="chart" id="ch-tiers-sq"></div></div>
+        <div><p class="panel-title"><span class="key" style="background:var(--ladder)"></span>Sufficiency Ladder</p><div class="chart" id="ch-tiers-ladder"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <details>
+    <summary>Show the numbers</summary>
+    <div class="table-wrap"><table id="tbl"></table></div>
+  </details>
+
+  <section class="notes" aria-label="About the model">
+    <h2>How the model works</h2>
+    <p>Each year, people work, earn, save, and decide how many days to work. AI raises output per hour and may reduce the hours firms need. Under the status quo, owners keep all profit and firms lay off the newest hires when they need fewer hours. On the ladder, profit above today's level is split after costs, the company keeps share c, and workers get the rest per hour worked. Half of each worker's share goes into a personal capital account, and anyone waiting for work draws half a share. People cut hours as their pay rises and as they approach "enough", and the hours they give up go to the next person in line. The gross split is identical except that the company keeps c of the gain before costs and pays for AI itself, so far fewer AI projects pay off for it.</p>
+    <p>This is a stylized model for comparing mechanisms, not a forecast. It leaves out prices, taxes, trade, capital flight, and differences between firms. Openings that nobody fills, which appear when people choose shorter weeks, lower output; in a real economy, new entrants, migrants or AI could fill them, and who owns that AI matters. Household savings and capital accounts earn fixed returns from outside the model economy.</p>
+    <p>Read the <a href="paper/sufficiency-ladder-working-paper.pdf">working paper</a> (PDF) and the <a href="https://rinsite.substack.com/p/keynes-promised-us-time-ai-is-our">essay</a>; the code and its version history are in the <a href="https://github.com/AJ-FYC/sufficiency-ladder">repository</a>.</p>
+    <p>Model version 1.4. The code is published with this page: <a href="model.js">model.js</a> (the model, which this page runs), <a href="run.js">run.js</a> (every scenario in the paper), <a href="figs.py">figs.py</a> (the paper's figures) and <a href="paper_numbers.js">paper_numbers.js</a>, which reruns every scenario and checks each model number the paper reports. Running <code>node paper_numbers.js</code> next to the other files reproduces and checks every number in the paper.</p>
+  </section>
+</div>
+
+<script>
+/*
+ * The Sufficiency Ladder - agent-based model, v1.4
+ *
+ * v1.4 makes capital accounts vest when a person graduates, as the paper
+ * describes: a graduate who stops working draws on the account once cash
+ * savings run out, and a vested account's contributions and returns count as
+ * spendable income. Every result run.js saves is identical to v1.3's, so no
+ * number or figure in the paper changes; the difference shows only where many
+ * people graduate, as in a 40-year run with status pressure.
+ *
+ * v1.3 adds four switches, all off by default, so every v1.2 result is unchanged:
+ *   dividendHoursRight    the flat dividend gets the ladder's right to set hours,
+ *                         work-sharing and, with admitQueue, the admission rule
+ *   dividendInPay         the dividend counts toward pay per hour in the hours rule
+ *   dividendAccounts      a share stockShare of the dividend goes into capital accounts
+ *   aiYears               AI adds growth only in the first aiYears years (0 = every year)
+ * It also records spendable income: income less capital-account contributions
+ * and the returns accrued on the accounts, which are locked until graduation.
+ *
+ * v1.2 added two sensitivity switches (both off by default, so every v1.1
+ * result is unchanged) and recorded the terms of the absorption condition:
+ *   statusIncludesOwners  status pressure measures the top tenth of ALL
+ *                         incomes, owners included (v1.1: the 2,000 people only)
+ *   baselinePerHour       the grandfathered baseline scales with efficiency
+ *                         hours worked, CF0 * L_t / H0 (v1.1: a fixed sum)
+ * Household wealth earns exogenous returns (rSave, rEquity), as if invested in
+ * a wider capital market; AI investment is paid from firm cash flow.
+ *
+ * One file, shared by the interactive page (browser global `LadderModel`)
+ * and by the paper's figure scripts (Node `require`). Deterministic for a
+ * given seed. Units: thousands of real dollars per year ($k), hours in FTE
+ * (1.0 = a five-day week), time in years.
+ *
+ * Regimes (all start from the same status-quo economy at t = 0)
+ *   sq       Status quo. Owners keep all profit. No right to cut hours;
+ *            falling labour demand is handled by layoffs (last in, first out).
+ *   gross    The ladder with the split applied to GROSS added profit: the
+ *            company keeps share c of the gain but pays all AI costs. Every
+ *            other rule is identical to `ladder`, so the two differ only in
+ *            the split basis.
+ *   ladder   The tuned ladder. The split applies to added CASH-FLOW profit
+ *            (AI costs deducted first, losses carried forward with interest).
+ *            The worker pool is paid per hour worked (people waiting for work
+ *            count as `standbyFTE`), part of it into personal capital accounts,
+ *            capped per FTE with the excess paid as an equal dividend. Workers
+ *            may cut hours as they near "enough"; falling demand is absorbed by
+ *            work-sharing before any layoff.
+ *   dividend Comparator. The same rent pool as `ladder`, paid as an equal
+ *            dividend to everyone, under status-quo labour-market rules.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.LadderModel = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var DEFAULTS = Object.freeze({
+    N: 2000,                // non-owner people
+    owners: 20,             // capital owners (about the top 1%)
+    T: 30,                  // years simulated
+    seed: 7,
+    regime: 'ladder',
+    // Technology
+    A0: 100,                // output per efficiency-FTE-year at t = 0 ($k)
+    gBase: 0.012,           // non-AI productivity growth per year
+    gAIMax: 0.015,          // extra growth when every positive-NPV AI project is built
+    costOfCapital: 0.07,    // r
+    aiObsolescence: 0.15,   // delta: yearly decay of an AI project's gains
+    projMedianReturn: 0.25, // median first-year gain per $1 of AI capex
+    projSigma: 0.9,         // lognormal dispersion of project returns
+    capexShareSQ: 0.02,     // AI capex as a share of output when every positive-NPV project is built
+    laborSaving: 0.3,       // lambda: share of AI's productivity gain that shows up as fewer hours needed
+    // Wages
+    w0: 60,                 // base wage per efficiency FTE ($k)
+    passThrough: 0.3,       // elasticity of the base wage to productivity
+    skillSigma: 0.45,       // lognormal dispersion of skill (wage multiplier)
+    // Sharing rule
+    companyShare: 0.10,     // c: the company's share of added profit
+    stockShare: 0.5,        // beta: part of each worker's share paid into a personal capital account
+    shareCap: 1.0,          // max share per FTE, as a multiple of the base wage; excess becomes an equal dividend
+    standbyFTE: 0.5,        // people waiting for work draw the share as if working this many FTE
+    // Hours and behaviour (apply only where a right to set hours exists)
+    passionShare: 0.5,      // graduates who keep working by choice
+    passionHours: 0.6,      // their hours (3 days)
+    tierHours: [1.0, 1.0, 0.9, 0.8], // desired hours in tiers I-IV
+    timePreference: 0.2,    // eta: desired hours fall as pay per hour rises, hours ~ payIndex^-eta
+    minHours: 0.6,          // nobody below sufficiency chooses fewer than 3 days
+    shareFloor: 0.6,        // work-sharing floor before anyone is laid off
+    admitQueue: false,      // admission rule: when people are waiting, incumbents share hours (down to the floor) to take them in
+    minHire: 0.2,           // smallest partial job offered to a newcomer
+    // Frictions and safety net
+    headCost: 0.05,         // fixed cost per employed head, as a share of the base wage
+    safetyNet: 0.3,         // income of the involuntarily unemployed, as a share of the base wage
+    // Households
+    cMin: 30,               // consumption floor; savings come out of income above it
+    saveRate: 0.25,
+    rSave: 0.03,            // real return on cash savings
+    rEquity: 0.05,          // real return on capital-account holdings
+    livingCost: 45,         // yearly spending of someone living off their wealth, at t = 0
+    sufficiencyYears: 25,   // "enough" = 25 x living cost (a 4% withdrawal rule)
+    normDrift: 0.5,         // nu: elasticity of "enough" to median income
+    statusPressure: 0.0,    // psi: elasticity of "enough" to the top-10%/median income ratio
+    statusIncludesOwners: false, // true: that ratio is measured over everyone, owners included
+    baselinePerHour: false, // true: the grandfathered baseline scales with efficiency hours worked
+    dividendHoursRight: false, // dividend regime: true gives it the ladder's right to set hours and work-sharing
+    dividendInPay: false,   // dividend regime: true counts the dividend toward pay per hour in the hours rule
+    dividendAccounts: false, // dividend regime: true pays stockShare of the dividend into capital accounts
+    aiYears: 0,             // AI adds growth only in the first aiYears years; 0 = every year
+    careerYears: 40,
+    initUnemp: 0.05
+  });
+
+  var REGIMES = ['sq', 'gross', 'ladder', 'dividend'];
+  var REGIME_LABELS = {
+    sq: 'Status quo',
+    gross: 'Gross split',
+    ladder: 'Sufficiency Ladder',
+    dividend: 'Flat dividend'
+  };
+
+  // ---------- numerics ----------
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function erf(x) { // Abramowitz & Stegun 7.1.26, |error| < 1.5e-7
+    var s = x < 0 ? -1 : 1; x = Math.abs(x);
+    var t = 1 / (1 + 0.3275911 * x);
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+  function Phi(z) { return 0.5 * (1 + erf(z / Math.SQRT2)); }
+  function mean(arr, a, b) { var s = 0; for (var i = a; i < b; i++) s += arr[i]; return b > a ? s / (b - a) : 0; }
+  function gini(sorted) {
+    var n = sorted.length, num = 0, den = 0;
+    for (var i = 0; i < n; i++) { num += (2 * (i + 1) - n - 1) * sorted[i]; den += sorted[i]; }
+    return den > 0 ? num / (n * den) : 0;
+  }
+
+  // ---------- investment rule (Section 4 of the paper) ----------
+  // An AI project: a $1 outlay returns rho in year 1, decaying at delta per
+  // year, so PV(gains) = rho / (r + delta). A firm that keeps share k of the
+  // gains and pays share j of the cost builds it iff k * rho / (r + delta) >= j.
+  //   status quo, or a cash-flow split (k = j = c): threshold u = r + delta
+  //   gross split (k = c, j = 1):                   threshold u / c
+  // rho ~ Lognormal(ln median, sigma). Value built = E[rho; rho >= threshold].
+  function investment(p) {
+    var u = p.costOfCapital + p.aiObsolescence;
+    var mu = Math.log(p.projMedianReturn), s = p.projSigma;
+    function V(th) { return isFinite(th) ? Phi((mu + s * s - Math.log(th)) / s) : 0; }
+    function P(th) { return isFinite(th) ? Phi((mu - Math.log(th)) / s) : 0; }
+    var c = Math.min(1, Math.max(0, p.companyShare));
+    var th = u;
+    if (p.regime === 'gross') th = c > 0 ? u / c : Infinity;
+    var valueShare = V(th) / V(u);
+    return {
+      userCost: u,
+      threshold: th,
+      valueShare: valueShare,
+      projectShare: P(th) / P(u),
+      gAI: p.gAIMax * valueShare,
+      capexShare: p.capexShareSQ * (P(th) / P(u))
+    };
+  }
+
+  // ---------- the simulation ----------
+  function simulate(userParams) {
+    var p = Object.assign({}, DEFAULTS, userParams || {});
+    if (REGIMES.indexOf(p.regime) < 0) throw new Error('Unknown regime: ' + p.regime);
+    var rng = mulberry32(p.seed >>> 0);
+    var spare = null;
+    function randn() {
+      if (spare !== null) { var v = spare; spare = null; return v; }
+      var u1 = 0;
+      while (u1 <= 1e-12) u1 = rng();
+      var u2 = rng(), r = Math.sqrt(-2 * Math.log(u1));
+      spare = r * Math.sin(2 * Math.PI * u2);
+      return r * Math.cos(2 * Math.PI * u2);
+    }
+    function newSkill() { return Math.exp(p.skillSigma * randn() - 0.5 * p.skillSigma * p.skillSigma); }
+
+    var N = p.N, c = p.companyShare;
+    var hoursRight = (p.regime === 'ladder' || p.regime === 'gross' || (p.regime === 'dividend' && p.dividendHoursRight));
+    var m = new Float64Array(N), sv = new Float64Array(N), ca = new Float64Array(N);
+    var h = new Float64Array(N), want = new Float64Array(N), share = new Float64Array(N), inc = new Float64Array(N), spend = new Float64Array(N);
+    var age = new Int32Array(N), tenure = new Int32Array(N), wait = new Int32Array(N);
+    var passion = new Uint8Array(N), vested = new Uint8Array(N); // vested: capital account open since graduation
+    var S0 = p.livingCost * p.sufficiencyYears;
+
+    // --- initial state: a status-quo economy ---
+    for (var i = 0; i < N; i++) {
+      age[i] = Math.floor(rng() * p.careerYears);
+      m[i] = newSkill();
+      passion[i] = rng() < p.passionShare ? 1 : 0;
+      var save0 = p.saveRate * Math.max(0, p.w0 * m[i] - p.cMin);
+      sv[i] = age[i] > 0 ? save0 * (Math.pow(1 + p.rSave, age[i]) - 1) / p.rSave : 0;
+    }
+    var H0 = 0, heads0 = 0;
+    for (i = 0; i < N; i++) {
+      want[i] = (sv[i] + ca[i]) / S0 >= 1 ? (passion[i] ? 1 : 0) : 1;
+      vested[i] = (sv[i] + ca[i]) / S0 >= 1 ? 1 : 0;
+      if (want[i] > 0 && rng() >= p.initUnemp) { h[i] = 1; tenure[i] = age[i]; H0 += m[i]; heads0++; }
+      else if (want[i] > 0) { wait[i] = Math.floor(rng() * 3); }
+    }
+    var Y0 = p.A0 * H0, WB0 = p.w0 * H0, F0 = p.headCost * p.w0 * heads0;
+    var C0 = p.capexShareSQ * Y0;
+    var CF0 = Y0 - WB0 - F0 - C0;     // grandfathered cash-flow profit
+    var GG0 = Y0 - WB0 - F0;          // grandfathered gross profit (before AI capex)
+
+    var inv = investment(p);
+    var out = {
+      params: p, investment: inv, H0: H0, Y0: Y0, CF0: CF0,
+      year: [], A: [], Y: [], H: [], wage: [], sufficiency: [],
+      // classes by earning power (skill rank): lower 50%, middle 40%, upper 10%; plus owners
+      classLow: [], classMid: [], classHigh: [], ownersPer: [],
+      spendLow: [], spendMid: [], spendHigh: [],
+      wealthLow: [], wealthMid: [], wealthHigh: [],
+      daysLow: [], daysMid: [], daysHigh: [],
+      // income-ranked distribution
+      bottom50: [], middle40: [], top10: [], median: [], meanIncome: [],
+      top1ToBottom50: [], gini: [],
+      unemployment: [], avgHoursEmployed: [], daysPerWeek: [], partTimeShare: [], employmentRate: [],
+      graduated: [], tierShares: [], slack: [], unfilled: [],
+      pool: [], perFTEShare: [], dividendPerPerson: [], workersShareOfOutput: [], ownersShareOfOutput: [],
+      broadOwnership: [], capexShare: [], carry: [],
+      // terms of the absorption condition (Proposition 3), recorded from year 1
+      diag: { year: [], payIndex: [], wanted: [], fullNonGrad: [], tauMean: [], gradWanted: [] }
+    };
+
+    var carry = 0, ineq0 = null, ineqPrev = null, med0 = null, medPrev = null, S = S0, lastPerFTE = 0;
+    var order = new Int32Array(N);
+
+    function record(t, A, Y, H, w, pool, perFTE, divPer, ownersIncome, slack, WB, L) {
+      var sorted = Array.prototype.slice.call(inc).sort(function (a, b) { return a - b; });
+      var half = Math.floor(N / 2), p90 = Math.round(0.9 * N);
+      var b50 = mean(sorted, 0, half), m40 = mean(sorted, half, p90), t10 = mean(sorted, p90, N);
+      var med = N % 2 ? sorted[half] : 0.5 * (sorted[half - 1] + sorted[half]);
+      var ownersPer = ownersIncome / p.owners;
+      var all = sorted.slice();
+      for (var k = 0; k < p.owners; k++) all.push(Math.max(0, ownersPer));
+      all.sort(function (a, b) { return a - b; });
+      // classes by skill rank
+      var idx = new Array(N); for (k = 0; k < N; k++) idx[k] = k;
+      idx.sort(function (a, b) { return m[a] - m[b]; });
+      var cls = [[0, half], [half, p90], [p90, N]], ci = [], cs = [], cw = [], cd = [];
+      for (var g = 0; g < 3; g++) {
+        var si = 0, ss = 0, sw = 0, sh = 0, nh = 0;
+        for (k = cls[g][0]; k < cls[g][1]; k++) { var q0 = idx[k]; si += inc[q0]; ss += spend[q0]; sw += sv[q0] + ca[q0]; if (h[q0] > 0) { sh += h[q0]; nh++; } }
+        var n = cls[g][1] - cls[g][0];
+        ci.push(si / n); cs.push(ss / n); cw.push(sw / n); cd.push(nh > 0 ? 5 * sh / nh : 0);
+      }
+      var lf = 0, unemp = 0, heads = 0, Lh = 0, pt = 0, grad = 0, sumCA = 0;
+      var tiers = [0, 0, 0, 0, 0]; // waiting, climbing (I-II), approaching (III-IV), graduated & working, graduated & not working
+      for (var q = 0; q < N; q++) {
+        var prog = (sv[q] + ca[q]) / S;
+        sumCA += ca[q];
+        if (prog >= 1) grad++;
+        if (want[q] > 0) lf++;
+        if (want[q] > 0 && h[q] === 0) { unemp++; tiers[0]++; }
+        else if (h[q] > 0) {
+          heads++; Lh += h[q]; if (h[q] < 0.999) pt++;
+          if (prog >= 1) tiers[3]++; else if (prog < 0.5) tiers[1]++; else tiers[2]++;
+        } else tiers[4]++;
+      }
+      var meanInc = 0; for (q = 0; q < N; q++) meanInc += inc[q]; meanInc /= N;
+      out.year.push(t); out.A.push(A); out.Y.push(Y); out.H.push(H); out.wage.push(w); out.sufficiency.push(S);
+      out.classLow.push(ci[0]); out.classMid.push(ci[1]); out.classHigh.push(ci[2]); out.ownersPer.push(ownersPer);
+      out.spendLow.push(cs[0]); out.spendMid.push(cs[1]); out.spendHigh.push(cs[2]);
+      out.wealthLow.push(cw[0]); out.wealthMid.push(cw[1]); out.wealthHigh.push(cw[2]);
+      out.daysLow.push(cd[0]); out.daysMid.push(cd[1]); out.daysHigh.push(cd[2]);
+      out.bottom50.push(b50); out.middle40.push(m40); out.top10.push(t10); out.median.push(med); out.meanIncome.push(meanInc);
+      out.top1ToBottom50.push(ownersPer / b50); out.gini.push(gini(all));
+      out.unemployment.push(lf > 0 ? unemp / lf : 0);
+      out.avgHoursEmployed.push(heads > 0 ? Lh / heads : 0);
+      out.daysPerWeek.push(heads > 0 ? 5 * Lh / heads : 0);
+      out.partTimeShare.push(heads > 0 ? pt / heads : 0);
+      out.employmentRate.push(heads / N);
+      out.graduated.push(grad / N);
+      out.tierShares.push(tiers.map(function (x) { return x / N; }));
+      out.slack.push(slack);
+      out.unfilled.push(H > 0 ? Math.max(0, H - L) / H : 0);
+      out.pool.push(pool); out.perFTEShare.push(perFTE); out.dividendPerPerson.push(divPer);
+      out.workersShareOfOutput.push(Y > 0 ? (WB + pool) / Y : 0);
+      out.ownersShareOfOutput.push(Y > 0 ? ownersIncome / Y : 0);
+      var ownersValue = Math.max(0, ownersIncome) / p.rEquity;
+      out.broadOwnership.push(sumCA + ownersValue > 0 ? sumCA / (sumCA + ownersValue) : 0);
+      out.capexShare.push(t === 0 ? p.capexShareSQ : inv.capexShare);
+      out.carry.push(carry);
+      var ratio = t10 / Math.max(1e-9, med);
+      if (p.statusIncludesOwners) {
+        var nA = all.length, p90A = Math.round(0.9 * nA), hA = Math.floor(nA / 2);
+        var medA = nA % 2 ? all[hA] : 0.5 * (all[hA - 1] + all[hA]);
+        ratio = mean(all, p90A, nA) / Math.max(1e-9, medA);
+      }
+      if (ineq0 === null) { ineq0 = ratio; med0 = med; }
+      ineqPrev = ratio; medPrev = med;
+    }
+
+    // --- year 0 incomes (status-quo distribution) ---
+    for (i = 0; i < N; i++) {
+      var unemp0 = want[i] > 0 && h[i] === 0;
+      inc[i] = p.w0 * m[i] * h[i] + p.rSave * sv[i] + (unemp0 ? p.safetyNet * p.w0 : 0);
+      spend[i] = inc[i];
+    }
+    record(0, p.A0, Y0, H0, p.w0, 0, 0, 0, CF0, 0, WB0, H0);
+
+    // --- years 1..T ---
+    for (var t = 1; t <= p.T; t++) {
+      // careers end; newcomers arrive with nothing
+      for (i = 0; i < N; i++) {
+        age[i]++;
+        if (age[i] >= p.careerYears) {
+          age[i] = 0; m[i] = newSkill(); passion[i] = rng() < p.passionShare ? 1 : 0;
+          sv[i] = 0; ca[i] = 0; h[i] = 0; tenure[i] = 0; wait[i] = 0; vested[i] = 0;
+        }
+      }
+      // technology, wages, and what counts as "enough"
+      var Mt = Math.pow(1 + inv.gAI, p.aiYears > 0 ? Math.min(t, p.aiYears) : t);
+      var A = p.A0 * Math.pow(1 + p.gBase, t) * Mt;
+      var H = H0 * Math.pow(Mt, -p.laborSaving);
+      var w = p.w0 * Math.pow(A / p.A0, p.passThrough);
+      S = S0 * Math.pow(medPrev / med0, p.normDrift) * Math.pow(ineqPrev / ineq0, p.statusPressure);
+      var livingNow = S / p.sufficiencyYears;
+      var payIndex = (w + lastPerFTE) / p.w0;
+      var hoursFactor = Math.pow(payIndex, -p.timePreference);
+
+      // desired hours
+      var dWanted = 0, dFull = 0, dTau = 0, dGrad = 0;
+      for (i = 0; i < N; i++) {
+        var prog = (sv[i] + ca[i]) / S;
+        if (prog >= 1) vested[i] = 1;
+        if (prog >= 1) want[i] = passion[i] ? (hoursRight ? p.passionHours : 1) : 0;
+        else want[i] = hoursRight ? Math.max(p.minHours, Math.min(1, p.tierHours[Math.min(3, Math.floor(prog * 4))] * hoursFactor)) : 1;
+        if (h[i] > 0 && want[i] === 0) h[i] = 0; // graduates who choose to stop
+        if (want[i] > 0) {
+          dWanted += m[i] * want[i];
+          if (prog >= 1) dGrad += m[i] * want[i];
+          else { dFull += m[i]; dTau += m[i] * p.tierHours[Math.min(3, Math.floor(prog * 4))]; }
+        }
+      }
+      out.diag.year.push(t); out.diag.payIndex.push(payIndex); out.diag.wanted.push(dWanted);
+      out.diag.fullNonGrad.push(dFull); out.diag.tauMean.push(dFull > 0 ? dTau / dFull : 1); out.diag.gradWanted.push(dGrad);
+
+      // labour allocation
+      var D = 0, nInc = 0;
+      for (i = 0; i < N; i++) if (h[i] > 0) { D += m[i] * want[i]; order[nInc++] = i; }
+      var slack = H - D;
+      if (hoursRight && p.admitQueue) {
+        // one pool of everyone who wants work: incumbents by seniority, then the queue
+        var incA = Array.prototype.slice.call(order, 0, nInc).sort(function (a, b) { return tenure[b] - tenure[a]; });
+        var qA = [];
+        for (i = 0; i < N; i++) if (h[i] === 0 && want[i] > 0) qA.push(i);
+        qA.sort(function (a, b) { return (wait[b] - wait[a]) || ((sv[a] + ca[a]) - (sv[b] + ca[b])); });
+        var E = incA.concat(qA), fsum = 0, nE = 0;
+        for (k = 0; k < E.length; k++) { var fk = m[E[k]] * Math.min(want[E[k]], p.shareFloor); if (fsum + fk > H) break; fsum += fk; nE++; }
+        var inE = E.slice(0, nE), full = 0;
+        for (k = 0; k < inE.length; k++) full += m[inE[k]] * want[inE[k]];
+        var sA = 1;
+        if (full > H) {
+          var aa = 0, bb = 1;
+          for (var it2 = 0; it2 < 50; it2++) {
+            var ss = 0.5 * (aa + bb), sp = 0;
+            for (k = 0; k < inE.length; k++) { var qq = inE[k]; sp += m[qq] * Math.max(Math.min(want[qq], p.shareFloor), want[qq] * ss); }
+            if (sp > H) bb = ss; else aa = ss;
+          }
+          sA = aa;
+        }
+        for (k = 0; k < inE.length; k++) {
+          var e = inE[k], wasOut = h[e] === 0;
+          h[e] = Math.max(Math.min(want[e], p.shareFloor), want[e] * sA);
+          if (wasOut) { tenure[e] = 0; wait[e] = 0; }
+        }
+        for (k = nE; k < E.length; k++) { if (h[E[k]] > 0) wait[E[k]] = 0; h[E[k]] = 0; }
+      } else if (D <= H) {
+        for (var k = 0; k < nInc; k++) h[order[k]] = want[order[k]];
+        // hire the next in line: longest wait first, then least wealth
+        var queue = [];
+        for (i = 0; i < N; i++) if (h[i] === 0 && want[i] > 0) queue.push(i);
+        queue.sort(function (a, b) { return (wait[b] - wait[a]) || ((sv[a] + ca[a]) - (sv[b] + ca[b])); });
+        var room = H - D;
+        for (k = 0; k < queue.length && room > 1e-9; k++) {
+          var j = queue[k], eff = m[j] * want[j];
+          if (eff <= room) { h[j] = want[j]; room -= eff; tenure[j] = 0; wait[j] = 0; }
+          else { var part = room / m[j]; if (part >= p.minHire) { h[j] = part; tenure[j] = 0; wait[j] = 0; } room = 0; }
+        }
+      } else {
+        // demand has fallen below what incumbents want to supply
+        var incs = Array.prototype.slice.call(order, 0, nInc);
+        incs.sort(function (a, b) { return tenure[a] - tenure[b]; }); // last in, first out
+        if (hoursRight) {
+          // work-sharing: cut hours proportionally, down to a floor, before any layoff
+          var floorSupply = 0;
+          for (k = 0; k < incs.length; k++) floorSupply += m[incs[k]] * Math.min(want[incs[k]], p.shareFloor);
+          var cut = 0;
+          while (floorSupply > H && cut < incs.length) {
+            var lo = incs[cut++]; floorSupply -= m[lo] * Math.min(want[lo], p.shareFloor); h[lo] = 0; wait[lo] = 0;
+          }
+          var keep = incs.slice(cut), a = 0, b = 1;
+          for (var it = 0; it < 50; it++) {
+            var s = 0.5 * (a + b), sup = 0;
+            for (k = 0; k < keep.length; k++) { var q = keep[k]; sup += m[q] * Math.max(Math.min(want[q], p.shareFloor), want[q] * s); }
+            if (sup > H) b = s; else a = s;
+          }
+          for (k = 0; k < keep.length; k++) { q = keep[k]; h[q] = Math.max(Math.min(want[q], p.shareFloor), want[q] * a); }
+        } else {
+          var supply = D, ix = 0;
+          while (supply > H && ix < incs.length) { var lo2 = incs[ix++]; supply -= m[lo2] * want[lo2]; h[lo2] = 0; wait[lo2] = 0; }
+          for (k = ix; k < incs.length; k++) h[incs[k]] = want[incs[k]];
+        }
+      }
+      for (i = 0; i < N; i++) {
+        if (h[i] > 0) tenure[i]++;
+        else if (want[i] > 0) wait[i]++;
+      }
+
+      // production and the profit pool
+      var L = 0, Lh = 0, heads = 0, waiting = 0;
+      for (i = 0; i < N; i++) {
+        if (h[i] > 0) { L += m[i] * h[i]; Lh += h[i]; heads++; }
+        else if (want[i] > 0) waiting++;
+      }
+      var Y = A * L, WB = w * L, F = p.headCost * w * heads, C = inv.capexShare * Y;
+      var CF = Y - WB - F - C;
+      var pool = 0;
+      if (p.regime === 'gross') {
+        pool = (1 - c) * Math.max(0, (Y - WB - F) - GG0);
+      } else if (p.regime === 'ladder' || p.regime === 'dividend') {
+        var base = CF - (p.baselinePerHour ? CF0 * L / H0 : CF0) + carry;
+        if (base < 0) { carry = base * (1 + p.costOfCapital); pool = 0; }
+        else { carry = 0; pool = (1 - c) * base; }
+      }
+      var ownersIncome = CF - pool;
+
+      // paying out the pool
+      var perFTE = 0, divPer = 0;
+      share.fill(0);
+      if (hoursRight && p.regime !== 'dividend') {
+        var units = Lh + p.standbyFTE * waiting;
+        var raw = units > 0 ? pool / units : 0;
+        perFTE = Math.min(raw, p.shareCap * w);
+        for (i = 0; i < N; i++) {
+          if (h[i] > 0) share[i] = perFTE * h[i];
+          else if (want[i] > 0) share[i] = perFTE * p.standbyFTE;
+        }
+        divPer = (pool - perFTE * units) / N;
+      } else if (p.regime === 'dividend') {
+        divPer = pool / N;
+      }
+      lastPerFTE = (p.regime === 'dividend' && p.dividendInPay) ? divPer : perFTE;
+
+      // household incomes and saving
+      for (i = 0; i < N; i++) {
+        var wage = w * m[i] * h[i];
+        var interest = p.rSave * sv[i];
+        var unemployed = want[i] > 0 && h[i] === 0;
+        var benefit = unemployed ? p.safetyNet * w : 0;
+        var stock = p.stockShare * share[i];
+        var divStock = (p.regime === 'dividend' && p.dividendAccounts) ? p.stockShare * divPer : 0;
+        var cash = wage + (share[i] - stock) + (divPer - divStock) + interest + benefit;
+        spend[i] = vested[i] ? cash + stock + divStock + p.rEquity * ca[i] : cash; // a vested account is spendable
+        inc[i] = cash + stock + divStock + p.rEquity * ca[i];
+        var dSave;
+        if (want[i] === 0) dSave = cash - livingNow;
+        else { var surplus = cash - p.cMin; dSave = surplus > 0 ? p.saveRate * surplus : surplus; }
+        var draw = 0; // a graduate living off wealth draws on the vested account once cash savings run out
+        if (want[i] === 0 && sv[i] + dSave < 0) draw = Math.min(ca[i], -(sv[i] + dSave));
+        sv[i] = Math.max(0, sv[i] + dSave + draw);
+        ca[i] = (ca[i] - draw) * (1 + p.rEquity) + stock + divStock;
+      }
+      record(t, A, Y, H, w, pool, perFTE, divPer, ownersIncome, slack, WB, L);
+    }
+
+    // summary: annualised growth of each class's mean income, year 0 to year T
+    function g(arr) { var a0 = arr[0], aT = arr[arr.length - 1]; return (a0 > 0 && aT > 0) ? Math.pow(aT / a0, 1 / p.T) - 1 : NaN; }
+    var Tn = p.T;
+    out.summary = {
+      growth: { low: g(out.classLow), mid: g(out.classMid), high: g(out.classHigh), owners: g(out.ownersPer), median: g(out.median), bottom50: g(out.bottom50),
+        lowSpendable: g(out.spendLow), midSpendable: g(out.spendMid), highSpendable: g(out.spendHigh) },
+      final: {
+        unemployment: out.unemployment[Tn], daysPerWeek: out.daysPerWeek[Tn], graduated: out.graduated[Tn],
+        top1ToBottom50: out.top1ToBottom50[Tn], gini: out.gini[Tn], outputIndex: out.Y[Tn] / out.Y[0],
+        productivityIndex: out.A[Tn] / out.A[0], broadOwnership: out.broadOwnership[Tn],
+        dividendPerPerson: out.dividendPerPerson[Tn], perFTEShare: out.perFTEShare[Tn], wage: out.wage[Tn],
+        workersShareOfOutput: out.workersShareOfOutput[Tn], median: out.median[Tn], ownersPer: out.ownersPer[Tn],
+        classLow: out.classLow[Tn], classMid: out.classMid[Tn], classHigh: out.classHigh[Tn], unfilled: out.unfilled[Tn],
+        sufficiency: out.sufficiency[Tn], spendLow: out.spendLow[Tn], lockedShareLow: 1 - out.spendLow[Tn] / out.classLow[Tn]
+      },
+      peakUnemployment: Math.max.apply(null, out.unemployment),
+      start: {
+        top1ToBottom50: out.top1ToBottom50[0], gini: out.gini[0], unemployment: out.unemployment[0], median: out.median[0],
+        ownersPer: out.ownersPer[0], classLow: out.classLow[0], classMid: out.classMid[0], classHigh: out.classHigh[0]
+      }
+    };
+    return out;
+  }
+
+  function runAll(params) {
+    var res = {};
+    REGIMES.forEach(function (r) { res[r] = simulate(Object.assign({}, params || {}, { regime: r })); });
+    return res;
+  }
+
+  return { DEFAULTS: DEFAULTS, REGIMES: REGIMES, REGIME_LABELS: REGIME_LABELS, simulate: simulate, runAll: runAll, investment: investment, Phi: Phi };
+});
+
+</script>
+<script>
+(function () {
+  'use strict';
+  var M = window.LadderModel;
+  var REG = ['sq', 'ladder', 'dividend', 'gross'];
+  var LAB = { sq: 'Status quo', ladder: 'Sufficiency Ladder', dividend: 'Flat dividend', gross: 'Gross split' };
+  var CLS = [['classLow', 'Lower-paid 50%'], ['classMid', 'Middle 40%'], ['classHigh', 'Top-paid 10%'], ['ownersPer', 'Owners (top 1%)']];
+  var TIERS = ['Waiting for work', 'Climbing (I–II)', 'Approaching enough (III–IV)', 'Graduated, working', 'Graduated, not working'];
+  var NS = 'http://www.w3.org/2000/svg';
+  var state = { res: null };
+
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function col(r) { return css('--' + r); }
+  function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function txt(parent, x, y, s, attrs) { var t = el('text', Object.assign({ x: x, y: y }, attrs || {}), parent); t.textContent = s; return t; }
+  function pct(x, d, sign) { if (!isFinite(x)) return '–'; var v = (100 * x).toFixed(d == null ? 1 : d); if (sign && x > 0) v = '+' + v; return v.replace('-', '−') + '%'; }
+  function money(v) { return v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + 'M' : Math.round(v) + 'K'; }
+  function niceTicks(lo, hi, n) {
+    var span = hi - lo, step = Math.pow(10, Math.floor(Math.log10(span / n))), err = n / span * step;
+    if (err <= 0.15) step *= 10; else if (err <= 0.35) step *= 5; else if (err <= 0.75) step *= 2;
+    var out = []; for (var v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10)); return out;
+  }
+
+  // ---------- tooltip ----------
+  function tip(container) {
+    var d = container.querySelector('.tip');
+    if (!d) { d = document.createElement('div'); d.className = 'tip'; d.hidden = true; container.appendChild(d); }
+    return d;
+  }
+  function fillTip(d, title, rows) {
+    d.textContent = '';
+    var t = document.createElement('div'); t.className = 't'; t.textContent = title; d.appendChild(t);
+    rows.forEach(function (r) {
+      var row = document.createElement('div'); row.className = 'row';
+      var k = document.createElement('span'); k.className = 'key'; k.style.background = r.color; row.appendChild(k);
+      var b = document.createElement('b'); b.textContent = r.value; row.appendChild(b);
+      var l = document.createElement('span'); l.textContent = r.label; row.appendChild(l);
+      d.appendChild(row);
+    });
+  }
+  function placeTip(d, container, x, y) {
+    d.hidden = false;
+    var w = d.offsetWidth, cw = container.clientWidth;
+    var left = x + 14; if (left + w > cw) left = Math.max(0, x - w - 14);
+    d.style.left = left + 'px'; d.style.top = Math.max(0, y - 10) + 'px';
+  }
+
+  // ---------- line chart ----------
+  function lineChart(container, opt) {
+    container.querySelectorAll('svg').forEach(function (s) { s.remove(); });
+    var W = Math.max(280, container.clientWidth), H = opt.height || 240;
+    var m = { l: 46, r: opt.rightPad || 16, t: 10, b: 30 };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': opt.aria || '' }, null);
+    container.insertBefore(svg, container.firstChild);
+    var xs = opt.x, x0 = xs[0], x1 = xs[xs.length - 1];
+    var X = function (v) { return m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r); };
+    var lo = opt.yMin, hi = opt.yMax, Y;
+    if (opt.log) { var a = Math.log(lo), b = Math.log(hi); Y = function (v) { return m.t + (1 - (Math.log(Math.max(v, lo)) - a) / (b - a)) * (H - m.t - m.b); }; }
+    else Y = function (v) { return m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b); };
+    var ticks = opt.ticks || niceTicks(lo, hi, 4);
+    var g = el('g', {}, svg);
+    ticks.forEach(function (t) {
+      el('line', { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), stroke: css('--grid'), 'stroke-width': 1 }, g);
+      txt(g, m.l - 8, Y(t) + 4, opt.yFmt(t), { 'text-anchor': 'end', 'font-size': 11.5, fill: css('--muted') });
+    });
+    el('line', { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: css('--base'), 'stroke-width': 1 }, g);
+    [0, 10, 20, 30].forEach(function (t) { if (t <= x1) txt(g, X(t), H - m.b + 18, t === 0 ? 'Year 0' : String(t), { 'text-anchor': t === 0 ? 'start' : 'middle', 'font-size': 11.5, fill: css('--muted') }); });
+    opt.series.forEach(function (s) {
+      var d = s.values.map(function (v, i) { return (i ? 'L' : 'M') + X(xs[i]).toFixed(1) + ',' + Y(v).toFixed(1); }).join('');
+      el('path', { d: d, fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, g);
+      var lv = s.values[s.values.length - 1];
+      el('circle', { cx: X(x1), cy: Y(lv), r: 4, fill: s.color, stroke: css('--surface'), 'stroke-width': 2 }, g);
+    });
+    // direct end labels, skipping any that would collide
+    if (opt.endLabels) {
+      var placed = [];
+      opt.series.slice().sort(function (a, b) { return (b.priority || 0) - (a.priority || 0); }).forEach(function (s) {
+        var y = Y(s.values[s.values.length - 1]);
+        if (placed.some(function (p) { return Math.abs(p - y) < 13; })) return;
+        placed.push(y);
+        txt(g, X(x1) + 8, y + 4, opt.endLabels(s), { 'font-size': 11.5, fill: css('--ink2') });
+      });
+    }
+    // crosshair + tooltip
+    var cross = el('line', { y1: m.t, y2: H - m.b, stroke: css('--base'), 'stroke-width': 1, visibility: 'hidden' }, svg);
+    var hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent', tabindex: 0, 'aria-label': (opt.aria || 'chart') + ': use left and right arrow keys to read values' }, svg);
+    var d = tip(container), idx = xs.length - 1;
+    function show(i) {
+      idx = Math.max(0, Math.min(xs.length - 1, i));
+      var px = X(xs[idx]); cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+      fillTip(d, 'Year ' + xs[idx], opt.series.map(function (s) { return { color: s.color, value: opt.tipFmt(s.values[idx]), label: s.label }; }));
+      var rect = svg.getBoundingClientRect(), scale = rect.width / W;
+      placeTip(d, container, px * scale, m.t * scale);
+    }
+    function hide() { cross.setAttribute('visibility', 'hidden'); d.hidden = true; }
+    hit.addEventListener('pointermove', function (e) {
+      var rect = svg.getBoundingClientRect(), scale = W / rect.width;
+      var px = (e.clientX - rect.left) * scale, frac = (px - m.l) / (W - m.l - m.r);
+      show(Math.round(x0 + frac * (x1 - x0)) - x0);
+    });
+    hit.addEventListener('pointerleave', hide);
+    hit.addEventListener('focus', function () { show(idx); });
+    hit.addEventListener('blur', hide);
+    hit.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowLeft') { show(idx - 1); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { show(idx + 1); e.preventDefault(); }
+    });
+  }
+
+  // ---------- grouped bars ----------
+  function barChart(container, groups, series) {
+    container.querySelectorAll('svg').forEach(function (s) { s.remove(); });
+    var W = Math.max(300, container.clientWidth), H = 280, m = { l: 46, r: 10, t: 22, b: 36 };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Yearly income growth by class and regime' });
+    container.insertBefore(svg, container.firstChild);
+    var all = []; series.forEach(function (s) { all = all.concat(s.values); });
+    var lo = Math.min(0, Math.min.apply(null, all)), hi = Math.max(0.01, Math.max.apply(null, all)) * 1.15;
+    var Y = function (v) { return m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b); };
+    niceTicks(lo, hi, 4).forEach(function (t) {
+      el('line', { x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t), stroke: css('--grid'), 'stroke-width': 1 }, svg);
+      txt(svg, m.l - 8, Y(t) + 4, pct(t, 0), { 'text-anchor': 'end', 'font-size': 11.5, fill: css('--muted') });
+    });
+    el('line', { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: css('--base'), 'stroke-width': 1 }, svg);
+    var gw = (W - m.l - m.r) / groups.length, bw = Math.min(24, (gw * 0.8 - 3 * 4) / series.length), gap = 4;
+    var d = tip(container);
+    groups.forEach(function (gname, gi) {
+      var cx = m.l + gw * (gi + 0.5), start = cx - (series.length * bw + (series.length - 1) * gap) / 2;
+      series.forEach(function (s, si) {
+        var v = s.values[gi], x = start + si * (bw + gap), y0 = Y(0), y1 = Y(v), top = Math.min(y0, y1), hgt = Math.max(1, Math.abs(y1 - y0)), r = Math.min(4, hgt, bw / 2);
+        var p = v >= 0
+          ? 'M' + x + ',' + y0 + 'V' + (top + r) + 'Q' + x + ',' + top + ' ' + (x + r) + ',' + top + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + top + ' ' + (x + bw) + ',' + (top + r) + 'V' + y0 + 'Z'
+          : 'M' + x + ',' + y0 + 'V' + (y1 - r) + 'Q' + x + ',' + y1 + ' ' + (x + r) + ',' + y1 + 'H' + (x + bw - r) + 'Q' + (x + bw) + ',' + y1 + ' ' + (x + bw) + ',' + (y1 - r) + 'V' + y0 + 'Z';
+        var bar = el('path', { d: p, fill: s.color, tabindex: 0, 'aria-label': s.label + ', ' + gname + ': ' + pct(v, 1, true) + ' a year' }, svg);
+        function on() { bar.setAttribute('opacity', '0.8'); fillTip(d, gname, [{ color: s.color, value: pct(v, 2, true) + ' a year', label: s.label }]); var rect = svg.getBoundingClientRect(), sc = rect.width / W; placeTip(d, container, (x + bw) * sc, top * sc); }
+        function off() { bar.removeAttribute('opacity'); d.hidden = true; }
+        bar.addEventListener('pointerenter', on); bar.addEventListener('pointerleave', off); bar.addEventListener('focus', on); bar.addEventListener('blur', off);
+        if (s.label === 'Sufficiency Ladder' || s.label === 'Status quo') txt(svg, x + bw / 2, (v >= 0 ? top - 6 : y1 + 14), pct(v, 1, true), { 'text-anchor': 'middle', 'font-size': 11, fill: css('--ink'), 'font-weight': s.label === 'Sufficiency Ladder' ? 600 : 400 });
+      });
+      txt(svg, cx, H - m.b + 20, gname, { 'text-anchor': 'middle', 'font-size': 12.5, fill: css('--ink') });
+    });
+  }
+
+  // ---------- stacked area ----------
+  function stackChart(container, years, shares, colors) {
+    container.querySelectorAll('svg').forEach(function (s) { s.remove(); });
+    var W = Math.max(260, container.clientWidth), H = 220, m = { l: 40, r: 8, t: 8, b: 28 };
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Share of people by tier' });
+    container.insertBefore(svg, container.firstChild);
+    var X = function (t) { return m.l + t / years[years.length - 1] * (W - m.l - m.r); }, Y = function (v) { return m.t + (1 - v) * (H - m.t - m.b); };
+    var cum = years.map(function () { return 0; });
+    for (var k = 0; k < colors.length; k++) {
+      var top = years.map(function (_, i) { return cum[i] + shares[i][k]; });
+      var d = 'M' + years.map(function (t, i) { return X(t) + ',' + Y(top[i]); }).join('L') + 'L' + years.slice().reverse().map(function (t, i) { var j = years.length - 1 - i; return X(t) + ',' + Y(cum[j]); }).join('L') + 'Z';
+      el('path', { d: d, fill: colors[k], stroke: css('--surface'), 'stroke-width': 1 }, svg);
+      cum = top;
+    }
+    [0, 0.5, 1].forEach(function (t) { txt(svg, m.l - 6, Y(t) + 4, pct(t, 0), { 'text-anchor': 'end', 'font-size': 11, fill: css('--muted') }); });
+    el('line', { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: css('--base') }, svg);
+    [0, 10, 20, 30].forEach(function (t) { txt(svg, X(t), H - m.b + 17, t === 0 ? 'Year 0' : String(t), { 'text-anchor': t === 0 ? 'start' : 'middle', 'font-size': 11, fill: css('--muted') }); });
+    var cross = el('line', { y1: m.t, y2: H - m.b, stroke: css('--ink2'), 'stroke-width': 1, visibility: 'hidden' }, svg);
+    var hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent', tabindex: 0, 'aria-label': 'Tier shares: use arrow keys to read values' }, svg);
+    var dt = tip(container), idx = years.length - 1;
+    function show(i) {
+      idx = Math.max(0, Math.min(years.length - 1, i)); var px = X(years[idx]);
+      cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('visibility', 'visible');
+      fillTip(dt, 'Year ' + years[idx], TIERS.map(function (n, k) { return { color: colors[k], value: pct(shares[idx][k], 0), label: n }; }).reverse());
+      var rect = svg.getBoundingClientRect(), sc = rect.width / W; placeTip(dt, container, px * sc, m.t * sc);
+    }
+    function hide() { cross.setAttribute('visibility', 'hidden'); dt.hidden = true; }
+    hit.addEventListener('pointermove', function (e) { var rect = svg.getBoundingClientRect(), sc = W / rect.width; show(Math.round(((e.clientX - rect.left) * sc - m.l) / (W - m.l - m.r) * years[years.length - 1])); });
+    hit.addEventListener('pointerleave', hide); hit.addEventListener('focus', function () { show(idx); }); hit.addEventListener('blur', hide);
+    hit.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') { show(idx - 1); e.preventDefault(); } if (e.key === 'ArrowRight') { show(idx + 1); e.preventDefault(); } });
+  }
+
+  // ---------- controls ----------
+  var ids = ['c', 'g', 'lam', 'eta', 'nu', 'psi'];
+  var fmt = { c: function (v) { return pct(v, 0); }, g: function (v) { return pct(v, 2); }, lam: function (v) { return pct(v, 0); }, eta: function (v) { return (+v).toFixed(2); }, nu: function (v) { return (+v).toFixed(2); }, psi: function (v) { return (+v).toFixed(2); } };
+  var defaults = {}; ids.forEach(function (k) { defaults[k] = document.getElementById(k).value; });
+  function params() {
+    var v = function (k) { return parseFloat(document.getElementById(k).value); };
+    return { companyShare: v('c'), gAIMax: v('g'), laborSaving: v('lam'), timePreference: v('eta'), normDrift: v('nu'), statusPressure: v('psi'), admitQueue: document.getElementById('admit').checked };
+  }
+  function syncOutputs() { ids.forEach(function (k) { document.getElementById(k + '-out').textContent = fmt[k](document.getElementById(k).value); }); }
+
+  function legends() {
+    document.querySelectorAll('[data-legend="regimes"]').forEach(function (L) {
+      L.textContent = '';
+      REG.forEach(function (r) { var s = document.createElement('span'); var k = document.createElement('i'); k.className = 'key'; k.style.background = col(r); s.appendChild(k); s.appendChild(document.createTextNode(LAB[r])); L.appendChild(s); });
+    });
+    var lc = document.getElementById('legend-classes'); lc.textContent = '';
+    CLS.forEach(function (c, i) { var s = document.createElement('span'); var k1 = document.createElement('i'); k1.className = 'key'; k1.style.background = css('--o' + (i + 1)); k1.style.width = '7px'; var k2 = document.createElement('i'); k2.className = 'key'; k2.style.background = css('--b' + (i + 1)); k2.style.width = '7px'; k2.style.marginLeft = '-5px'; s.appendChild(k1); s.appendChild(k2); s.appendChild(document.createTextNode(c[1])); lc.appendChild(s); });
+    var lt = document.getElementById('legend-tiers'); lt.textContent = '';
+    tierColors().forEach(function (cc, i) { var s = document.createElement('span'); var k = document.createElement('i'); k.className = 'sw'; k.style.background = cc; s.appendChild(k); s.appendChild(document.createTextNode(TIERS[i])); lt.appendChild(s); });
+  }
+  function tierColors() { return [col('sq'), css('--b1'), css('--b2'), css('--b3'), css('--b4')]; }
+
+  function kpis(res) {
+    var box = document.getElementById('kpis'); box.textContent = '';
+    var sq = res.sq.summary, la = res.ladder.summary, inv = M.investment(Object.assign({}, M.DEFAULTS, params(), { regime: 'gross' }));
+    var items = [
+      ['Lower-paid half: total income growth a year', pct(la.growth.low, 1, true), pct(sq.growth.low, 1, true), 'Spendable income only: ' + pct(la.growth.lowSpendable, 1, true) + ' on the ladder'],
+      ['Owners: income growth a year', pct(la.growth.owners, 1, true), pct(sq.growth.owners, 1, true)],
+      ['Unemployment in year 30', pct(la.final.unemployment, 0), pct(sq.final.unemployment, 0)],
+      ['Days worked per week in year 30', la.final.daysPerWeek.toFixed(1), sq.final.daysPerWeek.toFixed(1)],
+      ['Owners earn this many times the lower-paid half, year 30', Math.round(res.ladder.ownersPer[30] / res.ladder.classLow[30]) + '×', Math.round(res.sq.ownersPer[30] / res.sq.classLow[30]) + '×']
+    ];
+    items.forEach(function (it) {
+      var k = document.createElement('div'); k.className = 'kpi';
+      var l = document.createElement('div'); l.className = 'label'; l.textContent = it[0]; k.appendChild(l);
+      var p = document.createElement('div'); p.className = 'pair';
+      [[it[1], 'ladder', 'Ladder'], [it[2], 'sq', 'Status quo']].forEach(function (x, i) {
+        var v = document.createElement('div'); v.className = 'v'; v.textContent = x[0]; if (i) { v.style.fontSize = '17px'; v.style.fontWeight = '500'; v.style.color = css('--ink2'); }
+        var kk = document.createElement('div'); kk.className = 'k'; var key = document.createElement('i'); key.className = 'key'; key.style.background = col(x[1]); kk.appendChild(key); kk.appendChild(document.createTextNode(x[2]));
+        p.appendChild(v); p.appendChild(kk);
+      });
+      k.appendChild(p);
+      if (it[3]) { var nt = document.createElement('div'); nt.className = 'note'; nt.textContent = it[3]; k.appendChild(nt); }
+      box.appendChild(k);
+    });
+    var k = document.createElement('div'); k.className = 'kpi';
+    var l = document.createElement('div'); l.className = 'label'; l.textContent = 'Share of AI value that gets built'; k.appendChild(l);
+    var p = document.createElement('div'); p.className = 'pair';
+    [['100%', 'ladder', 'Split after costs'], [pct(inv.valueShare, 0), 'gross', 'Gross split']].forEach(function (x, i) {
+      var v = document.createElement('div'); v.className = 'v'; v.textContent = x[0]; if (i) { v.style.fontSize = '17px'; v.style.fontWeight = '500'; v.style.color = css('--ink2'); }
+      var kk = document.createElement('div'); kk.className = 'k'; var key = document.createElement('i'); key.className = 'key'; key.style.background = col(x[1]); kk.appendChild(key); kk.appendChild(document.createTextNode(x[2]));
+      p.appendChild(v); p.appendChild(kk);
+    });
+    k.appendChild(p); box.appendChild(k);
+  }
+
+  function table(res) {
+    var t = document.getElementById('tbl'); t.textContent = '';
+    var head = t.createTHead().insertRow(); var th = document.createElement('th'); th.textContent = 'Measure'; head.appendChild(th);
+    REG.forEach(function (r) { var h = document.createElement('th'); h.textContent = LAB[r]; head.appendChild(h); });
+    var body = t.createTBody();
+    var rows = [
+      ['Total income growth a year: lower-paid 50%', function (o) { return pct(o.summary.growth.low, 2, true); }],
+      ['Spendable income growth a year: lower-paid 50%', function (o) { return pct(o.summary.growth.lowSpendable, 2, true); }],
+      ['Total income growth a year: middle 40%', function (o) { return pct(o.summary.growth.mid, 2, true); }],
+      ['Total income growth a year: top-paid 10%', function (o) { return pct(o.summary.growth.high, 2, true); }],
+      ['Income growth a year: owners', function (o) { return pct(o.summary.growth.owners, 2, true); }],
+      ['Average total income, year 30: lower-paid 50% ($K)', function (o) { return o.classLow[30].toFixed(0); }],
+      ['Average spendable income, year 30: lower-paid 50% ($K)', function (o) { return o.summary.final.spendLow.toFixed(0); }],
+      ['Average income, year 30: owners ($K)', function (o) { return o.ownersPer[30].toFixed(0); }],
+      ['Unemployment, year 30', function (o) { return pct(o.summary.final.unemployment, 1); }],
+      ['Days worked per week, year 30', function (o) { return o.summary.final.daysPerWeek.toFixed(2); }],
+      ['People past "enough", year 30', function (o) { return pct(o.summary.final.graduated, 1); }],
+      ['Gini coefficient of total income, year 30', function (o) { return o.summary.final.gini.toFixed(3); }],
+      ['Output, year 30 (year 0 = 1)', function (o) { return o.summary.final.outputIndex.toFixed(2); }],
+      ['Output per hour, year 30 (year 0 = 1)', function (o) { return o.summary.final.productivityIndex.toFixed(2); }],
+      ['Unfilled labor demand, year 30', function (o) { return pct(o.summary.final.unfilled, 1); }]
+    ];
+    rows.forEach(function (r) { var tr = body.insertRow(); var c0 = tr.insertCell(); c0.textContent = r[0]; REG.forEach(function (k) { var c = tr.insertCell(); c.textContent = r[1](res[k]); }); });
+  }
+
+  function render() {
+    var res = state.res; if (!res) return;
+    legends(); kpis(res); table(res);
+    barChart(document.getElementById('ch-growth'), ['Lower-paid 50%', 'Middle 40%', 'Top-paid 10%', 'Owners'],
+      REG.map(function (r) { var g = res[r].summary.growth; return { label: LAB[r], color: col(r), values: [g.low, g.mid, g.high, g.owners] }; }));
+    var yrs = res.sq.year;
+    var allv = []; ['sq', 'ladder'].forEach(function (r) { CLS.forEach(function (c) { allv = allv.concat(res[r][c[0]]); }); });
+    var lo = Math.max(10, Math.min.apply(null, allv) * 0.8), hi = Math.max.apply(null, allv) * 1.3;
+    var lticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000].filter(function (t) { return t >= lo && t <= hi; });
+    [['sq', 'o'], ['ladder', 'b']].forEach(function (pr) {
+      var r = pr[0], o = res[r];
+      lineChart(document.getElementById('ch-paths-' + r), {
+        x: yrs, log: true, yMin: lo, yMax: hi, ticks: lticks, height: 250, rightPad: 52,
+        yFmt: function (v) { return v >= 1000 ? (v / 1000) + 'K' : String(v); }, tipFmt: function (v) { return '$' + money(v); },
+        series: CLS.map(function (c, i) { return { label: c[1], color: css('--' + pr[1] + (i + 1)), values: o[c[0]], priority: i === 3 ? 3 : (i === 0 ? 2 : 1) }; }),
+        endLabels: function (s) { return money(s.values[s.values.length - 1]); }, aria: 'Income by class, ' + LAB[r]
+      });
+      document.getElementById('note-' + r).textContent = 'Owners earn ' + Math.round(o.ownersPer[0] / o.classLow[0]) + '× the lower-paid half at year 0, ' + Math.round(o.ownersPer[30] / o.classLow[30]) + '× at year 30.';
+    });
+    var umax = 0; REG.forEach(function (r) { umax = Math.max(umax, Math.max.apply(null, res[r].unemployment)); });
+    lineChart(document.getElementById('ch-unemp'), {
+      x: yrs, yMin: 0, yMax: Math.max(0.1, Math.ceil(umax * 20) / 20), yFmt: function (v) { return pct(v, 0); }, tipFmt: function (v) { return pct(v, 1); },
+      series: REG.map(function (r) { return { label: LAB[r], color: col(r), values: res[r].unemployment }; }), aria: 'Unemployment by regime'
+    });
+    var dmin = 5; REG.forEach(function (r) { dmin = Math.min(dmin, Math.min.apply(null, res[r].daysPerWeek)); });
+    lineChart(document.getElementById('ch-days'), {
+      x: yrs, yMin: Math.max(0, Math.floor(dmin * 2) / 2 - 0.5), yMax: 5.1, ticks: niceTicks(Math.max(0, Math.floor(dmin * 2) / 2 - 0.5), 5, 4), yFmt: function (v) { return v.toFixed(1); }, tipFmt: function (v) { return v.toFixed(2) + ' days'; },
+      series: REG.map(function (r) { return { label: LAB[r], color: col(r), values: res[r].daysPerWeek }; }), aria: 'Days worked per week by regime'
+    });
+    stackChart(document.getElementById('ch-tiers-sq'), yrs, res.sq.tierShares, tierColors());
+    stackChart(document.getElementById('ch-tiers-ladder'), yrs, res.ladder.tierShares, tierColors());
+  }
+
+  var timer = null;
+  function recompute() {
+    document.getElementById('app').classList.add('busy');
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      state.res = M.runAll(params());
+      document.getElementById('app').classList.remove('busy');
+      render();
+    }, 60);
+  }
+  ids.forEach(function (k) { var i = document.getElementById(k); i.addEventListener('input', function () { syncOutputs(); recompute(); }); });
+  document.getElementById('admit').addEventListener('change', recompute);
+  document.getElementById('reset').addEventListener('click', function () { ids.forEach(function (k) { document.getElementById(k).value = defaults[k]; }); document.getElementById('admit').checked = false; syncOutputs(); recompute(); });
+  if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render); } catch (e) {} }
+  try { new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+  if (window.ResizeObserver) { var last = 0; new ResizeObserver(function () { var w = document.getElementById('app').clientWidth; if (Math.abs(w - last) > 8) { last = w; render(); } }).observe(document.getElementById('app')); }
+  syncOutputs();
+  state.res = M.runAll(params());
+  render();
+})();
+</script>

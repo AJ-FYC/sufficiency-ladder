@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "The Sufficiency Ladder: Sharing AI's Productivity Gains Through Cash-Flow Profit Participation and Voluntary Work Handoff"
+type: software
+authors:
+  - name: "RI"
+version: "5.1"
+date-released: "2026-10-27"
+url: "https://aj-fyc.github.io/sufficiency-ladder/"
+repository-code: "https://github.com/AJ-FYC/sufficiency-ladder"
+license: MIT
+abstract: "A proposal for sharing AI's productivity gains with the people doing the work: companies keep a fixed share of added profit after costs, workers receive the rest partly as capital accounts, and people who approach financial sufficiency hand hours to the next person in line. Includes a working paper, an agent-based model, an interactive simulator and a checker that reproduces every model number in the paper."
+keywords:
+  - artificial intelligence
+  - profit sharing
+  - working time
+  - agent-based model
+  - inequality
+  - cash-flow taxation
