@@ -46,7 +46,7 @@ Requires Node 16 or later and Python 3.9 or later. No other dependencies. A defa
 - `paper/`: the working paper as PDF and as markdown.
 - `essay/`: the essay as published on Substack.
 - `figures/`: the paper's figures and the essay's cover.
-- `media/`: the 60-second video Short and its captions, [published on YouTube](https://www.youtube.com/shorts/szgsdkdHAZ0), and the 7:59 explainer video.
+- `media/`: the 60-second video Short and its captions, [published on YouTube](https://www.youtube.com/shorts/szgsdkdHAZ0), and the explainer video.
 
 ## For reviewers
 
